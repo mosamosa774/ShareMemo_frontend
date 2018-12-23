@@ -8,12 +8,13 @@
 
 <style>
 html, body { 
-    height: 100vh;
+    height: 98vh;
+    width: 99.5%;
     color: #2c3e50;
     background-color: #17181c; }
 #app {
+    height: 100%;
     width: 100%;
-    height: 100vh;
     color: #2c3e50;
     background-color: #17181c;
 }

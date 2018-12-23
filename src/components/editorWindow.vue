@@ -1,10 +1,11 @@
 <template>
-  <div id="editorWindow" class='container' v-bind:style="{ top: y + 'px', left: x + 'px'}" v-if="!remove">
-    <div class='area-g0'>
-      <a @mousedown="mousedown($event)" >{{ window }}</a>
+  <div @click="up2forward" id="editorWindow" class='container' v-bind:style="{ top: y + 'px', left: x + 'px', zIndex: z}" v-if="!remove">
+    <div @mousedown="mousedown($event)" class='area-g0'>
+      <a >{{ window }}</a>
     </div>
-    <div class='area-g1'>
-      <a @click="close" >x</a>
+    <div @mousedown="mousedown($event)" class='area-g1'>
+        <img @click="record" :src="record_src" width="25" height="25">
+        <img @click="close" src="../assets/close.png" width="25" height="25">
     </div>
     <div class='area-g2'>
       <textarea v-model="memo" rows="6" cols="40" ></textarea>
@@ -13,16 +14,22 @@
 </template>
 
 <script>
+// eslint-disable-next-line
+const speech = new webkitSpeechRecognition();
+speech.lang = 'ja-JP';
+
 export default {
     name: 'editorWindow',
-    props: ['pre_memo','pre_window','init_x','init_y'],
+    props: ['pre_memo','pre_window','init_x','init_y','init_z'],
     data () {
         return {
             x: 0,
             y: 0,
+            z: 0,
             window: "",
             memo: "",
-            remove: false
+            remove: false,
+            record_src: require("../assets/voice_record.png")
         }
     },
     created: function () {
@@ -30,14 +37,13 @@ export default {
         this.window = this.pre_window
         this.x = this.init_x;
         this.y = this.init_y;
-        this._x = 0;
-        this._y = 0;
-        this._x2 = 0;
-        this._y2 = 0;
+        this.z = this.init_z;
+        this.record_run = false;
+        this._xy = {};
+        this.diff = {};
     },
     methods: {
-        childMethod () {
-            // eslint-disable-next-line
+        readMemo () {
             return this.memo
         },
         close () {
@@ -47,22 +53,45 @@ export default {
         /* eslint-disable */
         mousedown: function(e) {
             //カーソルの初期位置を控えておく
-            this._x = e.pageX;
-            this._y = e.pageY;
-            this._x2 = e.pageX;
-            this._y2 = e.pageY;
+            this._xy = {x: e.pageX,y: e.pageY}
+            this.diff = {x: e.pageX - this.x,y: e.pageY - this.y};
             document.addEventListener("mousemove", this.mousemove)
             document.addEventListener("mouseup", this.mouseup)
         },
         mousemove: function(e) {
-            this.x = this._x2 + (e.pageX - this._x);
-            this.y = this._y2 + (e.pageY - this._y);
+            this.x = this._xy.x + (e.pageX - this._xy.x) - this.diff.x;
+            this.y = this._xy.y + (e.pageY - this._xy.y) - this.diff.y;
             //ウインドウを移動
         },
         mouseup: function(e) {
             document.removeEventListener("mousemove", this.mousemove)
             document.removeEventListener("mouseup", this.mouseup)
         },
+        up2forward (){
+            this.$parent.up2forward(this.window);
+        },
+        record (){
+            if(!this.record_run){
+                this.record_src = require("../assets/_voice_record.png")
+                var that = this
+                var reach2res = false
+                this.record_run = true;
+
+                speech.onresult = function(e) {
+                    const text = e.results[0][0].transcript;
+                    that.memo += text + '\n';
+                };
+                speech.onend = function() {
+                    if(that.record_run){
+                        speech.start();
+                    }
+                };
+                speech.start();
+            } else {
+                this.record_src = require("../assets/voice_record.png")
+                this.record_run = false;
+            }
+        }
         /* eslint-disable */
     }
 }
@@ -104,7 +133,6 @@ a {
     background-color: #333;
     color: #fff;
     border: 2px solid #333;
-    font-size: 24px;
     cursor: default;
 }
 textarea {
